@@ -7,6 +7,7 @@ Sonarqube: https://hub.docker.com/_/sonarqube
 
 
 Note:
+
 0. I am using minikube(local k8s cluster) to finish the checkpoint one
  Ensure that you install k8s cli and minikube and docker before running these command
 
