@@ -1,6 +1,6 @@
 import os
 
-print("Welcome to Big Data Processing Application")
+raw_input("Welcome to big data processing toolbox!")
 print("Please type the number that corresponds to which application you would like to run:")
 print("1. Apache Hadoop")
 print("2. Apache Spark")
@@ -17,12 +17,12 @@ if type(usr_val) != int:
 if usr_val >=5 or usr_val <= 0:
     raise RuntimeError
 
-# generate url for different app
+# generate url for different app 
 if usr_val == 1:
-    print("take a look at localshost:8020")
+    print("take a look at 34.82.144.7:9870")
 if usr_val == 2:
-    print("take a look at localshost:8080")
+    print("take a look at 35.199.188.103:8080")
 if usr_val == 3:
-    print("take a look at localshost:8888")
+    print("take a look at 34.83.32.126:8888")
 if usr_val == 4:
-    print("take a look at localshost:9000")
+    print("take a look at 34.145.106.105:9000")

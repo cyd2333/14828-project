@@ -1,81 +1,133 @@
 URL of images:
-Jupyter Notebook Image : https://hub.docker.com/r/ibmcom/jupyter-base-notebook-ppc64le
+Jupyter Notebook Image : https://hub.docker.com/r/jupyter/datascience-notebook
 Apache Spark: https://hub.docker.com/r/bitnami/spark
 Apache hadoop: https://hub.docker.com/r/bde2020/hadoop-namenode
                https://hub.docker.com/r/bde2020/hadoop-datanode
 Sonarqube: https://hub.docker.com/_/sonarqube
 
+video (upload to the box): https://cmu.box.com/s/7ua1yyeakzjf8g1l63yq40xnri5qpviv
 
-Note:
+Step of building up the project:
 
-0. I am using minikube(local k8s cluster) to finish the checkpoint one
- Ensure that you install k8s cli and minikube and docker before running these command
+1. build up the images:
+    In this project, I used five images in total. In the folliwng sections, i will introduce them 
+    one by one in detail:
 
-1. since these things are deployed on local, so they are complicated. I will deploy them to the cloud for the final step, then the user do not need to set them up
+    1.1 main app:
+    This is the image for the driver, which is used to print the URL based on user's input.
+    In this image, i wrote a python program to read the user's input, and it will return a URL based 
+    on user's input
 
-2. since they are deployed on local cluster, the processing time might be very long... it will be resolved after I move them to the cloud
+    1.2 juypter notebook:
+    This is a image for jupyter notebook. I built it based on the image that I found on docker hub.
+    I added a command line to make the jupyter book not require the token
 
+    1.3 Spark:
+    For the spark image, I directly use the image that I found online
 
-Instruction:
+    1.4 Apache hadoop:
+    for the hadoop image, I directly use the image that I found online
 
-For Jupyter Notebook Image and Apache Spark image, folliwng this instruction:
-1. pull the images from dokcer hub
-    docker pull ibmcom/jupyter-base-notebook-ppc64le
-    docker pull bitnami/spark
+    1.5 Sonarqube:
+    For the sonarqube scanner, I built based on the official Sonarqube image. I wrote some command line to 
+    download and install the sonarqube scanner in the sonarqube. 
 
-For each image of above two images, follow the following steps to deploy it on Kubernetes:
-2. open a new terminal tab
+2. upload the images to the GCP's container registry:
+    For each image, run following step to upload it to container registry:
+    
+    2.1 run "docker tag" to rename the docker image to be "docker_hub_id/image_name"
+    2.2 run "docker push" to push the image to the docekr hub
+    2.3 switch to GCP cloud shell
+    2.4 run "docker pull" with specified docker image name to pull the docker image from docker hub
+    2.5 run "docker tag" to rename the docker image to be "gcr.io/project_id/image_name"
+    2.6 run "docker push" to push it to the cloud registry
 
-3. kubectl create deployment app-name --image=docker.io/image-name
+    Note: 
+    I attach a screenshot of cloud registry
+    In the screenshot, 
+    "hadoop-datanode" is the image for hadoop's datanode
+    "hadoop-namenode" is the image for hadoop's namenode
+    "juypter-notebook-no-token" is the image for the juypter notebook
+    "main-app-new" is the image for the driver
+    "sonarqube-scanner" is the image for the sonarqube scanner
+    "spark-image" is the image for the spark
 
-4. kubectl expose deployment app-name --type=NodePort --port=default_port_number (each app is differ, listed in the following)
-    jupyter-notebook:8888
-    spark:8080
+3. create a GKE cluster, named yingdongcluster
 
-5. kubectl get services app-name
+4. deploy the images to the GCP's kubernetes engine (GKE):
 
-6. kubectl port-forward service/app-name local-port:default_port_number (do not stop it, I use it to connect to the container)
+    for each image, we need to deploy them to the GKE. Since different images require different configuration, I
+    will introduce them separately:
 
+    4.1 main app:
+    After deploy to the GKE, I manually set the "stdin" and "tty" to be true. The reason for this setting is to 
+    ensure that the driver can interact with the user
 
-For Sonarqube and Sonarqube Scanner, follow this instruction:
-1. pull the images from dokcer hub 
-    docker pull sonarqube
+    4.2 juypyter notebook:
+    I simply deploy it to the GKE by clicking "deploy to GKE"
 
-2. open a new terminal tab
+    4.3 spark:
+    I simply deploy it to the GKE by clicking "deploy to GKE"
 
-3. move to scanner folder
+    4.4 hadoop namenode
+    During the deployment of namenode, I add enviroment variable based on the instruction
+    after deployment, I scale it to be one as the project required
+    I take a screenshot of the environment variable that I set in the folder
+    refer to : https://github.com/big-data-europe/docker-hadoop/blob/master/docker-compose.yml
+                https://github.com/big-data-europe/docker-hadoop/blob/master/hadoop.env
 
-4. run "docker -t sonarqube_scanner ." to build a image
+    4.5 hadoop datanode
+    During the deployment of datanode, I add enviroment variable based on the instruction
+    after deployment, I scale it to be two as the project required
+    I take a screen shot of the enviroment variable that I set in the folder
+    refer to : https://github.com/big-data-europe/docker-hadoop/blob/master/hadoop.env
 
-5. run folliwng command:
-    kubectl create deployment kubectl create deployment sonarqube-app --image=docker.io/sonarqube_scanner
+    4.6 SonarQube
+    I simply deploy it to the GKE by clicking "deploy to GKE"
 
-6. run following command:
-    kubectl expose deployment sonarqube-app --type=NodePort --port=9000
+    Note: 
+    I attach a screenshot of apps that run on the GKE cluster (Screenshot_GKE_workload)
+    In the screenshot,
+    "datanode" is Hadoop's datanode app
+    "juypter-notebook" is Juypter notebook's app
+    "main-app-new" is drvier's app
+    "namenode" is Hadoop's namenode app
+    "nginx-2" is Spark's app
+    "sonarqube-scanner" is Sonarqube's app
 
-7. run following command:  
-    kubectl port-forward service/sonarqube-app 9000:9000 (do not stop it, I use it to connect to the container)
+5. Create the service to expose the app to the external access
 
-For Hadoop, follw this instruction:
-1. pull the images from dokcer hub 
-    docker pull bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
-    dokcer pull bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    Since each app's servie is different, i will introduce them one by one
 
-2. open a new terminal tab
+    5.1 Hadoop namenode:
+        it needs one port to communicate with datanode, and the one another port to allow user 
+        to access its web interface
+        I expose port 9000 for datanode communication, port 9870 for web interface
 
-3. run following command:
-    kubectl create deployment hadoop-data-node --image=docker.io/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    5.2 Spark:
+        It needs one port for user to access its web interface
+        I expose port 8080 for web interface
 
-4. run following command:
-    kubectl expose deployment hadoop-data-node --type=NodePort --port=50075
+    5.3  juypter-notebook:
+        It needs one port for user to access its web interface
+        I expose port 8888 for web interface
+    
+    5.4 sonarqube-scanner:
+        it needs one port for user to access its web interface
+        I expose port 9000 for web interface
 
-5. run following command:(since I need to set a env variable so I need to use yaml to deploy it)
-    kubectl apply -f hadoop-name-node-deployment.yaml
-
-6. run following command:
-    kubectl expose deployment hadoop-data-node --type=NodePort --port=8020
-
-7. run following command:
-    kubectl port-forward service/sonarqube-app 8020:8020 (do not stop it, I use it to connect to the container)
-
-After setting up, you run "python app.py" to use the tool
+    other: 
+        since there is no web interface for driver and datanode, I did not expose port for them
+    
+    Note:
+    I attach a screenshot of services of GKE cluster (Screenshot_GKE_services)
+    In the screenshot:
+        "jupyter-notebook-service" is service of juypter notebook app
+        "namenode-service" is service of hadoop namenode app
+        "nginx-2-service" is service of hadoop datanode app
+        "sonarqube-scanner-4dtgr" is service of Sonarqube scanner app
+    
+6. use kebectl command to access the driver
+    in order to access the k8s machine, we need to use a command with specified container name and pod name
+    The following is the command that I used: 
+        kubectl -n default attach main-app-new-698cd5b8c8-gv5sv -c main-app-new-1 -i -t
